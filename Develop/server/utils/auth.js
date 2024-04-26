@@ -1,39 +1,40 @@
 const jwt = require('jsonwebtoken');
+const { AuthenticationError } = require('apollo-server-express');
 
-// set token secret and expiration date
 const secret = 'mysecretsshhhhh';
 const expiration = '2h';
 
 module.exports = {
-  // function for our authenticated routes
-  authMiddleware: function (req, res, next) {
-    // allows token to be sent via  req.query or headers
+  // Modified authMiddleware to work with GraphQL context
+  authMiddleware: function ({ req }) {
+    // allows token to be sent via req.query or headers
     let token = req.query.token || req.headers.authorization;
 
-    // ["Bearer", "<tokenvalue>"]
+    // Extract the token from the Bearer header
     if (req.headers.authorization) {
       token = token.split(' ').pop().trim();
     }
 
+    // if no token is found, return the request object as is
     if (!token) {
-      return res.status(400).json({ message: 'You have no token!' });
+      return req;
     }
 
-    // verify token and get user data out of it
     try {
+      // verify token and get user data out of it
       const { data } = jwt.verify(token, secret, { maxAge: expiration });
+      // attach user data to the request object
       req.user = data;
     } catch {
-      console.log('Invalid token');
-      return res.status(400).json({ message: 'invalid token!' });
+      // If there's a problem with the token, throw an authentication error
+      throw new AuthenticationError('Invalid token!');
     }
 
-    // send to next endpoint
-    next();
+    // return the modified request object
+    return req;
   },
   signToken: function ({ username, email, _id }) {
     const payload = { username, email, _id };
-
     return jwt.sign({ data: payload }, secret, { expiresIn: expiration });
   },
 };
