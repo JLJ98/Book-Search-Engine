@@ -19,5 +19,8 @@
   },
   "resolutions": {
     "rollup": "desired_version"
+  },
+  "dependencies": {
+    "rollup": "^4.17.2"
   }
 }
